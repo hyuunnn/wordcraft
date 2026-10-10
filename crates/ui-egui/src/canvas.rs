@@ -37,6 +37,7 @@ pub struct CanvasState {
     pub focused: bool,
     pub render_ms: f64,
     pub ime_preedit: String,
+    pub(crate) ime: crate::ime::State,
     pub want_focus: bool,
     pub context_issue: Option<serde_json::Value>,
     pub context_synonyms: Option<serde_json::Value>,
@@ -100,6 +101,7 @@ impl Default for CanvasState {
             focused: false,
             render_ms: 0.0,
             ime_preedit: String::new(),
+            ime: Default::default(),
             want_focus: true,
             context_issue: None,
             context_synonyms: None,
@@ -337,6 +339,7 @@ fn drawing_grid_step(spacing: f32, scale: f32) -> f32 {
 }
 
 pub fn show(app: &mut WordApp, ui: &mut Ui) {
+    crate::ime::validate(app, ui.ctx());
     let t = Tokens::get(ui.ctx());
     let layout = app.session.layout();
     // View › Switch Modes: dark paper, inverted document colours, a white caret.
@@ -414,6 +417,12 @@ pub fn show(app: &mut WordApp, ui: &mut Ui) {
         origin = ui.min_rect().min - viewport.min.to_vec2();
         let content = Rect::from_min_size(ui.min_rect().min, geo.size);
         let resp = ui.allocate_rect(content, Sense::click_and_drag());
+        // Resolve focus before advertising IME. egui can clear focus between frames when
+        // ribbon widgets disappear; a still-editable canvas must immediately regain it.
+        if resp.clicked() || resp.drag_started() || app.canvas.want_focus || ui.memory(|m| m.focused().is_none()) {
+            resp.request_focus();
+            app.canvas.want_focus = false;
+        }
         if let Some(tr) = scroll_target {
             ui.scroll_to_rect(Rect::from_min_size(ui.min_rect().min + tr.min.to_vec2(), tr.size()), None);
         }
@@ -575,7 +584,7 @@ pub fn show(app: &mut WordApp, ui: &mut Ui) {
             }
         }
         // Caret.
-        let focused = resp.has_focus() || app.canvas.focused;
+        let focused = ui.memory(|m| m.owns_ime_events(resp.id));
         // Editing an equation: shade it and draw the caret inside it.
         let mut math_caret = false;
         if let Some(m) = app.session.math.clone()
@@ -608,6 +617,10 @@ pub fn show(app: &mut WordApp, ui: &mut Ui) {
                             should_interrupt_composition: false,
                         });
                     });
+                }
+                if !app.canvas.ime_preedit.is_empty() {
+                    let g = painter.text(pos2(x, y1), egui::Align2::LEFT_BOTTOM, &app.canvas.ime_preedit, regular((y1 - y0) * 0.8), caret_color);
+                    painter.line_segment([pos2(g.min.x, g.max.y), pos2(g.max.x, g.max.y)], Stroke::new(1.0, caret_color));
                 }
             }
         }
@@ -715,8 +728,10 @@ pub fn show(app: &mut WordApp, ui: &mut Ui) {
     }
     crate::table_pen::cursor(app, ui, &resp);
     // While "Save changes?" is up, keys answer it rather than edit the document behind it.
-    if app.canvas.focused && !matches!(app.dialog, Some(crate::dialogs::Dialog::SaveChanges { .. })) {
+    if app.canvas.focused && app.dialog.is_none() {
         crate::keys::canvas_events(app, ui.ctx());
+    } else {
+        crate::ime::cancel(app, ui.ctx());
     }
     let _ = origin;
     if let (Some(h), Some(v)) = (hruler, vruler) {

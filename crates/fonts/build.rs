@@ -1,9 +1,9 @@
 //! Optional craft-fonts build input (https://github.com/storytold/craft-fonts, recipe from its
 //! `docs/integration.md`). With `CRAFT_FONTS_DIR=<checkout>` the fonts in its
 //! `fonts/manifest.txt` are embedded as `CRAFT_FONTS`; unset, `CRAFT_FONTS` is empty. Web
-//! (wasm32) builds embed only the UI face, BIZ UDPGothic Regular, to stay within the web size
+//! (wasm32) builds embed only BIZ UDPGothic and Korean Regular faces, to stay within the web size
 //! budget. With `CRAFT_FONTS_REQUIRED` (releases), a native build also fails when the checkout
-//! has no font for a CJK interface language (Japanese, Simplified Chinese), as an outdated pin
+//! has no font for Japanese, Simplified Chinese or Korean, as an outdated pin
 //! once did (#241). It only reads the local checkout: no network.
 use std::fmt::Write as _;
 use std::path::PathBuf;
@@ -39,8 +39,8 @@ fn main() {
 }
 
 /// Scripts a release build (`CRAFT_FONTS_REQUIRED`, native) must embed a font for: the CJK
-/// interface languages' (Japanese, Simplified Chinese).
-const REQUIRED_SCRIPTS: &[&str] = &["Jpan", "Hans"];
+/// interface languages and Korean document/input fallback.
+const REQUIRED_SCRIPTS: &[&str] = &["Jpan", "Hans", "Hang"];
 
 /// One `CraftFont { .. }` initialiser per manifest line, and the scripts the embedded fonts cover.
 fn craft_fonts(dir: &std::path::Path) -> Result<(String, Vec<String>), String> {
@@ -55,7 +55,7 @@ fn craft_fonts(dir: &std::path::Path) -> Result<(String, Vec<String>), String> {
         let [family, style, file, scripts, ..] = f.as_slice() else {
             return Err(format!("malformed manifest line: {line}"));
         };
-        if wasm && !(*family == "BIZ UDPGothic" && *style == "Regular") {
+        if wasm && !(((*family == "BIZ UDPGothic") || scripts.split(',').any(|s| s.trim() == "Hang")) && *style == "Regular") {
             continue;
         }
         let path = dir.join(file).canonicalize().map_err(|e| format!("{file}: {e}"))?;

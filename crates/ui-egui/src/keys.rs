@@ -146,8 +146,93 @@ pub fn canvas_events(app: &mut WordApp, ctx: &egui::Context) {
     if app.ui.keytips != crate::keytips::Phase::Off {
         return;
     }
-    let events = ctx.input(|i| i.events.clone());
-    for e in events {
+    crate::ime::validate(app, ctx);
+    let mut events: std::collections::VecDeque<_> = ctx.input(|i| i.events.clone()).into();
+    let mut cleared_active = false;
+    let mut committed = false;
+    while let Some(e) = events.pop_front() {
+        if let egui::Event::WindowFocused(false) = e {
+            crate::ime::cancel(app, ctx);
+            continue;
+        }
+        if let egui::Event::Ime(event) = e {
+            match &event {
+                egui::ImeEvent::Preedit { text, .. } if !matches!(text.as_str(), "\n" | "\r") => {
+                    if text.is_empty() {
+                        cleared_active |= crate::ime::active(app);
+                    } else {
+                        cleared_active = false;
+                        committed = false;
+                    }
+                }
+                egui::ImeEvent::Commit(text) if !matches!(text.as_str(), "\n" | "\r") => {
+                    if text.is_empty() {
+                        cleared_active |= crate::ime::active(app);
+                    } else {
+                        cleared_active = false;
+                    }
+                    committed = !text.is_empty();
+                }
+                _ => {}
+            }
+            if let Err(e) = crate::ime::event(app, event) {
+                app.status(e);
+            }
+            continue;
+        }
+        if matches!(e, egui::Event::Copy | egui::Event::Cut | egui::Event::Paste(_)) {
+            match crate::ime::finish_events(app, &mut events) {
+                Ok(did_commit) => committed |= did_commit,
+                Err(e) => {
+                    app.status(e);
+                    continue;
+                }
+            }
+        }
+        if let egui::Event::Key { key, pressed: true, modifiers, .. } = &e {
+            let command = modifiers.command || (modifiers.ctrl && !cfg!(target_os = "macos"));
+            let editing = matches!(
+                key,
+                Key::Enter
+                    | Key::Tab
+                    | Key::Backspace
+                    | Key::Delete
+                    | Key::Escape
+                    | Key::Space
+                    | Key::ArrowLeft
+                    | Key::ArrowRight
+                    | Key::ArrowUp
+                    | Key::ArrowDown
+                    | Key::Home
+                    | Key::End
+                    | Key::PageUp
+                    | Key::PageDown
+            );
+            let confirmation = *key == Key::Enter
+                && (committed
+                    || events
+                        .iter()
+                        .take_while(|e| matches!(e, egui::Event::Ime(_) | egui::Event::Key { pressed: false, .. }))
+                        .any(|e| matches!(e, egui::Event::Ime(egui::ImeEvent::Commit(t)) if !matches!(t.as_str(), "" | "\n" | "\r"))));
+            if !command && editing && (crate::ime::active(app) || cleared_active || confirmation) {
+                continue;
+            }
+            if command || matches!(key, Key::F3 | Key::F5 | Key::F7 | Key::F9 | Key::F12) {
+                match crate::ime::finish_events(app, &mut events) {
+                    Ok(did_commit) => {
+                        committed |= did_commit;
+                        cleared_active = false;
+                    }
+                    Err(e) => {
+                        app.status(e);
+                        continue;
+                    }
+                }
+            } else {
+                crate::ime::dismiss(app);
+                committed = false;
+            }
+        }
         if let egui::Event::Paste(t) = &e {
             app.canvas.pasted = true;
             // Copied picture files arrive as their paths: insert the pictures (#45).
@@ -166,23 +251,9 @@ pub fn canvas_events(app: &mut WordApp, ctx: &egui::Context) {
             }
             continue;
         }
-        // Editing an equation: text and editing keys go into it.
+        // Equation editing uses the same composition lifetime and confirmation-key guard.
         if app.session.math.is_some() {
             match &e {
-                egui::Event::Text(t) => {
-                    let m = ctx.input(|i| i.modifiers);
-                    if !(m.command || (m.ctrl && !cfg!(target_os = "macos"))) && !t.is_empty() && t.chars().all(|c| !c.is_control()) {
-                        let _ = app.run("equation.type", json!({"text": t}));
-                    }
-                    continue;
-                }
-                egui::Event::Ime(egui::ImeEvent::Commit(text)) => {
-                    app.canvas.ime_preedit.clear();
-                    if !text.is_empty() {
-                        let _ = app.run("equation.type", json!({"text": text}));
-                    }
-                    continue;
-                }
                 egui::Event::Paste(t) => {
                     let _ = app.run("equation.type", json!({"text": t}));
                     continue;
@@ -197,17 +268,12 @@ pub fn canvas_events(app: &mut WordApp, ctx: &egui::Context) {
                 if m.command || (m.ctrl && !cfg!(target_os = "macos")) {
                     continue;
                 }
-                if t.chars().all(|c| !c.is_control()) && !t.is_empty() {
-                    // Typing with a text box selected types into it.
-                    crate::objects::enter_text_box(app);
-                    let _ = app.run("text.insert", json!({"text": t}));
-                }
-            }
-            egui::Event::Ime(egui::ImeEvent::Preedit { text, .. }) => app.canvas.ime_preedit = text,
-            egui::Event::Ime(egui::ImeEvent::Commit(text)) => {
-                app.canvas.ime_preedit.clear();
-                if !text.is_empty() {
-                    let _ = app.run("text.insert", json!({"text": text}));
+                if !t.is_empty() && t.chars().all(|c| !c.is_control()) {
+                    if let Err(e) = crate::ime::direct_text(app, &t) {
+                        app.status(e);
+                    }
+                    committed = false;
+                    cleared_active = false;
                 }
             }
             egui::Event::Paste(t) => {

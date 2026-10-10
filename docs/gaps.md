@@ -1,6 +1,6 @@
 # Where WordCraft falls short of Word
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-10 · **Change:** trivial (Draw Table and Eraser landed, #303; previously minor: beta distance restated: ~15 points, ~150–230 h; previously: first version; every known shortfall from the 2026-10-10 re-measure, ranked) · **Target:** Microsoft Word (Microsoft 365) for Mac 16.113.4
+> **Last reviewed:** 2026-10-11 · **Last updated:** 2026-10-11 · **Change:** minor (Korean IME application input fixed; remaining platform/input-method work retained) · **Target:** Microsoft Word (Microsoft 365) for Mac 16.113.4
 
 The work list. One entry per shortfall, ranked by how much it stops a Word user from switching
 (**B** = blocks beta). Each says what's missing, the evidence, who it hurts, an Opus 5.5 agent
@@ -60,12 +60,15 @@ The same gaps grouped the way the parity documents are, for agents working in on
 - **File-format gaps:** #1, #2, #5, #9, #14, #19, #23, #26; embedded fonts; glossary/building blocks.
 - **Hardware gaps:** #6, #12, #28; scanner/Continuity Camera insert; KDE soft text (#140).
 - **Localization gaps:** #8, #11, #16, #17; native-speaker review of every catalog (human).
+  Korean application input fixed on 2026-10-11: composition keys, save/shortcuts, late commits
+  and Hangul fallback are covered by engine and egui event tests; OS-native IME testing remains.
 - **Stability and performance gaps:** #3, #20.
 
 ## Revision history
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-11 | minor | Korean IME: transient preedit, confirmation-key ownership, final syllable saved once, late commits rejected; Gothic A1 fallback with composed/decomposed Hangul tests |
 | 2026-10-10 | trivial | Draw Table and Eraser landed (#303); removed from the feature-gap list |
 | 2026-10-10 | trivial | Tabs and Borders and Shading dialogs landed (#320); removed from the dialog-depth list |
 | 2026-10-10 | trivial | Columns, Symbol and Field dialogs landed (#321); removed from the dialog-depth list |

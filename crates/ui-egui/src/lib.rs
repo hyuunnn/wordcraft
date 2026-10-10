@@ -27,7 +27,10 @@ pub mod file_dialogs;
 pub mod frame;
 pub mod i18n;
 pub mod icons;
+mod ime;
 pub mod ink;
+#[cfg(test)]
+mod input_tests;
 pub mod keys;
 pub mod keytips;
 pub mod mini_toolbar;
@@ -315,6 +318,7 @@ impl WordApp {
     /// Close, Envelopes, Labels and Finish & Merge on a document with unsaved changes first ask
     /// Save / Don't Save / Cancel, and the command runs once that is answered (`ui.saveChanges`).
     pub fn run(&mut self, id: &str, params: Value) -> Result<Value, String> {
+        crate::ime::finish(self)?;
         // A button whose command needs input the user hasn't given yet opens its dialog (#240).
         if let Some(name) = input_dialog(id, &params)
             && widgets::enabled(self, id)
@@ -765,6 +769,18 @@ impl WordApp {
     pub fn logic(&mut self, ctx: &egui::Context) {
         let lang = i18n::Lang::from_pref(&self.ui.language);
         i18n::set_current(lang);
+        // Preedit is UI text too. Developer builds without craft-fonts load an installed
+        // Korean fallback before the first composition is painted, even in an English UI.
+        self.want_system_cjk |= wordcraft_fonts::korean_fonts().next().is_none()
+            && ctx.input(|i| {
+                i.events.iter().any(|e| {
+                    let text = match e {
+                        egui::Event::Text(t) | egui::Event::Ime(egui::ImeEvent::Preedit { text: t, .. } | egui::ImeEvent::Commit(t)) => t,
+                        _ => return false,
+                    };
+                    text.chars().any(|c| matches!(c as u32, 0x1100..=0x11FF | 0x3130..=0x318F | 0xAC00..=0xD7AF))
+                })
+            });
         // Chinese text wants the Chinese face before the Japanese one (one glyph style per line).
         // An installed CJK font is read only once CJK text is shown (#241): never for an English
         // interface that doesn't open the language list.
@@ -896,6 +912,9 @@ impl WordApp {
     pub fn ui(&mut self, ui: &mut egui::Ui) {
         let t0 = now_ms();
         let ctx = ui.ctx().clone();
+        if self.ui.backstage || self.dialog.is_some() {
+            crate::ime::cancel(self, &ctx);
+        }
         i18n::set_current(i18n::Lang::from_pref(&self.ui.language));
         // Fonts installed by `logic` take effect on the next frame.
         if self.fonts_frames < 2 {

@@ -50,6 +50,22 @@ fn typed(keys: &str) -> Session {
 }
 
 #[test]
+fn korean_ime_commits_replace_selection_and_backspace_whole_syllables() {
+    // The UI sends the final IME string once through the ordinary typing command.
+    for (committed, first) in [("한글", "한"), ("한글", "한")] {
+        let mut s = s();
+        run(&mut s, "text.insert", json!({"text": "old"}));
+        run(&mut s, "select.all", json!({}));
+        run(&mut s, "text.insert", json!({"text": committed}));
+        assert_eq!(s.doc.plain_text(StoryRef::Body), committed);
+        run(&mut s, "text.backspace", json!({}));
+        assert_eq!(s.doc.plain_text(StoryRef::Body), first);
+        run(&mut s, "edit.undo", json!({}));
+        assert_eq!(s.doc.plain_text(StoryRef::Body), committed);
+    }
+}
+
+#[test]
 fn enter_twice_after_a_list_item_ends_the_list() {
     let s = typed("* item\n\ntext");
     assert_eq!(paras(&s), vec![para("Item", Some(0)), para("text", None)]);

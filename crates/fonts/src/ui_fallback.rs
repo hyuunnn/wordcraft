@@ -75,6 +75,18 @@ pub fn system_cjk_ui_font(hans: bool) -> Option<SystemUiFont> {
     find_ui_font(&crate::system_font_dirs(), &candidates(hans), probe(hans), hans)
 }
 
+/// Installed Korean face for developer builds without the optional craft-fonts input.
+pub fn system_korean_ui_font() -> Option<SystemUiFont> {
+    let names: &[&str] = if cfg!(target_os = "macos") {
+        &["AppleSDGothicNeo.ttc", "Supplemental/AppleGothic.ttf"]
+    } else if cfg!(windows) {
+        &["malgun.ttf", "gulim.ttc"]
+    } else {
+        &["truetype/nanum/NanumGothic.ttf", "noto-cjk/NotoSansCJK-Regular.ttc", "opentype/noto/NotoSansCJK-Regular.ttc"]
+    };
+    find_ui_font(&crate::system_font_dirs(), names, '한', false)
+}
+
 /// The first of `names` (tried in order, each in every folder of `dirs`) that is a font file
 /// with a face mapping `probe`.
 pub(crate) fn find_ui_font(dirs: &[std::path::PathBuf], names: &[&str], probe: char, hans: bool) -> Option<SystemUiFont> {

@@ -18,7 +18,7 @@ use harfrust::{Direction, ShapeOptions, Tag, UnicodeBuffer};
 pub use kurbo::BezPath;
 use skrifa::MetadataProvider;
 use skrifa::instance::Size;
-pub use ui_fallback::{SystemUiFont, system_cjk_ui_font, ui_needs_system_cjk};
+pub use ui_fallback::{SystemUiFont, system_cjk_ui_font, system_korean_ui_font, ui_needs_system_cjk};
 
 /// A font from the optional craft-fonts build input (https://github.com/storytold/craft-fonts;
 /// empty unless built with `CRAFT_FONTS_DIR`, see `build.rs`).
@@ -59,6 +59,11 @@ pub fn chinese_fonts() -> impl Iterator<Item = &'static CraftFont> {
     CRAFT_FONTS.iter().filter(|f| f.scripts.contains(&"Hans"))
 }
 
+/// Korean fallback faces, including modern/decomposed Hangul and compatibility jamo.
+pub fn korean_fonts() -> impl Iterator<Item = &'static CraftFont> {
+    CRAFT_FONTS.iter().filter(|f| f.scripts.contains(&"Hang"))
+}
+
 /// The CJK interface faces, Regular styles only (the UI fakes no bold): the Japanese UI face and
 /// the Chinese face, Chinese first when `prefer_hans` (a Chinese interface), Japanese first
 /// otherwise. Mixing the two within a line would mix glyph styles, so the first face should
@@ -67,7 +72,8 @@ pub fn ui_cjk_fonts(prefer_hans: bool) -> Vec<&'static CraftFont> {
     let regular = |f: &&CraftFont| f.style == "Regular";
     let ja = japanese_ui_fonts(false).into_iter().filter(regular).take(1);
     let zh = chinese_fonts().filter(regular).take(1);
-    if prefer_hans { zh.chain(ja).collect() } else { ja.chain(zh).collect() }
+    let ko = korean_fonts().filter(regular);
+    if prefer_hans { zh.chain(ja).chain(ko).collect() } else { ja.chain(zh).chain(ko).collect() }
 }
 
 /// The bundled serif used when a document asks for nothing better.
@@ -219,6 +225,27 @@ pub fn first_glyph(face: &FontFace, chars: &[char]) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn korean_fallback_shapes_composed_and_decomposed_hangul_without_system_fonts() {
+        if korean_fonts().next().is_none() {
+            assert!(std::env::var_os("CRAFT_FONTS_REQUIRED").is_none(), "prepare the Korean fallback before release builds");
+            return;
+        }
+        let db = FontDb::with_font_dirs(Vec::new());
+        db.set_system_fallback(false);
+        let latin = db.face(DEFAULT_FAMILY, "Regular");
+        let face = db.fallback_for('한', latin.id()).unwrap();
+        for code in (0xAC00..=0xD7A3).chain(0x1100..=0x1112).chain(0x1161..=0x1175).chain(0x11A8..=0x11C2).chain(0x3131..=0x3163) {
+            let ch = char::from_u32(code).unwrap();
+            assert_ne!(face.glyph_for(ch), 0, "missing Hangul U+{code:X}");
+        }
+        let nfd = "한글";
+        let jamo = db.fallback_for('ᄒ', latin.id()).unwrap();
+        assert_eq!(jamo.id(), face.id(), "choose a Korean face before shaping decomposed syllables");
+        let glyphs = |text| shape(&face, text, &[], |c| c).into_iter().map(|g| (g.gid, g.x_advance)).collect::<Vec<_>>();
+        assert_eq!(glyphs(nfd), glyphs("한글"));
+    }
 
     #[test]
     fn last_resort_face_parses() {

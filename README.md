@@ -133,6 +133,17 @@ cargo run --release -p wordcraft -- --sample        # the desktop app with the s
 cargo run --release -p wordcraft -- report.docx     # open a document
 ```
 
+Optional Korean fallback for a local build (font files stay in craft-fonts):
+
+```sh
+git clone https://github.com/storytold/craft-fonts ../craft-fonts
+python3 scripts/prepare-korean-font.py ../craft-fonts
+CRAFT_FONTS_DIR="$PWD/../craft-fonts" cargo run --release -p wordcraft
+```
+
+The pinned OFL Gothic A1 face covers composed and decomposed Hangul in documents and UI text.
+Release workflows prepare it automatically and include its licence in the package.
+
 Command line:
 
 ```sh

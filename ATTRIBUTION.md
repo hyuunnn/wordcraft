@@ -63,3 +63,9 @@ Generated-in-code art is original and has no file to list: the UI icon set (`cra
 | `crates/ui-egui/src/i18n/uk.tsv` | @dmatviichuk with Codex | Original translation from the English interface labels in this repository; no other product localisation copied | MIT OR Apache-2.0 | Ukrainian interface catalog; spelling checked with external VESUM and ULIF dictionaries, neither bundled |
 | `crates/ui-egui/src/i18n/et.tsv` | @henno with Codex | Original translation from the English interface labels in this repository; no other product localisation copied | MIT OR Apache-2.0 | Estonian interface catalog |
 | `crates/ui-egui/src/i18n/pt-br.tsv` | @edurbs with ZCode | Original translation from the English interface labels in this repository; no other product localisation copied | MIT OR Apache-2.0 | Brazilian Portuguese interface catalog; spelling checked with the external pt_BR Hunspell dictionary, not bundled |
+
+### Korean fallback (optional craft-fonts input)
+
+| Asset | Author | Source | Licence | Notes |
+|---|---|---|---|---|
+| `fonts/gothic-a1/GothicA1-Regular.ttf` in the external craft-fonts checkout | HanYang I&C Co., Ltd. | https://github.com/google/fonts/tree/9710da1eacb3be272583c3224dcb70f9da6eadbb/ofl/gothica1 | SIL Open Font License 1.1 (`fonts/gothic-a1/OFL.txt` in craft-fonts) | Prepared by `scripts/prepare-korean-font.py`, with pinned SHA-256 checks for the font and licence. Embedded for Korean document/UI fallback when built with `CRAFT_FONTS_DIR`; no font file added to this repository. |

@@ -1,12 +1,33 @@
 # Typing parity with Word
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-10 · **Change:** trivial (status line, revision history and links to the other parity docs added; behaviour unchanged) · **Target:** Microsoft Word (Microsoft 365) for Mac 16.113.4
+> **Last reviewed:** 2026-10-11 · **Last updated:** 2026-10-11 · **Change:** minor (Korean IME composition and confirmation keys, shortcuts, save and late-commit regression tests) · **Target:** Microsoft Word (Microsoft 365) for Mac 16.113.4
 
 What Word does when you type, observed black-box (same keystrokes typed into Word and
 WordCraft, results read back paragraph by paragraph) and pinned by tests in
 `crates/engine/src/tests_typing.rs`. When typing behaviour changes, change it here and in the
 tests together. Line breaking and pagination are in [`layout-parity.md`](layout-parity.md); the
 overall picture is in [`target-app-parity.md`](target-app-parity.md).
+
+## Korean IME composition
+
+- Preedit updates (e.g. `ㅇ` → `아` → `안`) replace a transient underlined preview; they do
+  not edit the document or undo history. Commit inserts the final string once with `text.insert`
+  (or `equation.type` inside an equation). Text-box input enters the selected text box first.
+- While composing, Backspace, Delete, arrows, Space, Tab, Escape and confirmation Enter belong
+  to the input method. Confirmation Enter in the same batch as Commit does not add a paragraph;
+  the next ordinary Enter does. An idle empty preedit does not swallow ordinary keys.
+- Save, formatting and clipboard actions finish the pending syllable first. A queued CJK
+  candidate Commit takes precedence over the preview, and a native echo after a local finish
+  is ignored. New compositions can repeat the same syllable.
+- Changing the caret/document or leaving the window cancels the preview and rejects late
+  commits into the new target. The preview is never saved in a DOCX or included in autosave.
+- Gothic A1 from the optional `CRAFT_FONTS_DIR` covers Hangul syllables, compatibility jamo and
+  modern decomposed jamo in the document and UI. Native developer builds can use an installed
+  Korean UI font; wasm embeds the optional Korean Regular face.
+
+Evidence: synthetic egui frame tests in `crates/ui-egui/src/input_tests.rs`, document command
+regressions in `crates/engine/src/tests_typing.rs`, and offline fallback/shaping tests in
+`crates/fonts/src/lib.rs`. Physical macOS input-method validation remains a manual check.
 
 ## Lists
 
@@ -72,6 +93,7 @@ Applied when a word is finished by a space, punctuation **or Enter** (`enter_fin
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-11 | minor | Korean IME: transient preedit, confirmation-key ownership, final syllable saved once, late commits rejected; Gothic A1 fallback with composed/decomposed Hangul tests |
 | 2026-10-10 | trivial | Status line, revision history and cross-links added (progress-docs standard) |
 | 2026-10-10 | minor | Track Changes rows: tracked Enter, Backspace and Delete on paragraph marks (#244) |
 | 2026-10-10 | major | First version: lists, AutoCorrect and AutoFormat as you type, observed against Word (#204) |

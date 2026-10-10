@@ -15,10 +15,10 @@ list (author, source, license) is in ATTRIBUTION.md.
 - Source Sans 3 and Source Serif 4 (assets/fonts/Source*) — SIL Open Font License 1.1. See assets/fonts/OFL-SourceSans3.txt, OFL-SourceSerif4.txt.
 - Inter (assets/fonts/Inter-*.ttf) — SIL Open Font License 1.1. See assets/fonts/OFL-Inter.txt.
 - JetBrains Mono (assets/fonts/JetBrainsMono-*.ttf) — SIL Open Font License 1.1. See assets/fonts/OFL-JetBrainsMono.txt.
-- Japanese fonts (craft-fonts): builds made with craft-fonts (CRAFT_FONTS_DIR; all official
+- Japanese and Korean fonts (craft-fonts): builds made with craft-fonts (CRAFT_FONTS_DIR; all official
   releases) embed the fonts listed in
   https://github.com/storytold/craft-fonts/blob/main/ATTRIBUTION.md (BIZ UDPGothic, BIZ UDMincho,
-  Shippori Mincho), under the SIL Open Font License 1.1. Their licence texts ship with the
+  Shippori Mincho), plus Gothic A1 by HanYang I&C Co., Ltd., under the SIL Open Font License 1.1. Their licence texts ship with the
   packages as OFL-<family>.txt. Builds without CRAFT_FONTS_DIR do not include them.
 - English word list (assets/hyphenation/en-us.dic) — derived from the Moby Hyphenator II list by
   Grady Ward, public domain (Project Gutenberg eBook #3204). The hyphenation patterns

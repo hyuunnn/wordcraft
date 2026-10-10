@@ -1,6 +1,6 @@
 # Localization parity with Microsoft Word
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-10 · **Change:** major (first version; catalogs measured from `crates/ui-egui/src/i18n`, Word's languages from its bundle listing) · **Target:** Microsoft Word (Microsoft 365) for Mac 16.113.4
+> **Last reviewed:** 2026-10-11 · **Last updated:** 2026-10-11 · **Change:** minor (Korean IME input and composed/decomposed Hangul fallback verified with synthetic events) · **Target:** Microsoft Word (Microsoft 365) for Mac 16.113.4
 
 Interface languages, script support and proofing per language. How translation works (catalog
 format, adding a language, clean-room rule): `crates/ui-egui/src/i18n/mod.rs`.
@@ -49,7 +49,7 @@ shared items below.
 | Indonesian | id | 0 | ❌ | Latin ✅ | no | none | 3–4 |
 | Japanese | ja | ~930; 98% / ~95% | most | CJK ✅, IME ✅; no vertical text, ruby or document grid | no | partial | 3–5 |
 | German | de | 0 (PR #203 open) | ❌ | Latin ✅ | no | none | 1–2 |
-| Korean | ko | 0 | ❌ | Hangul ✅; macOS Korean IME fixes pending (#163, #164) | no | none | 3–5 |
+| Korean | ko | 0 | ❌ | Hangul NFC/NFD fallback ✅; IME composition, confirmation keys, save/shortcuts and late commits tested with synthetic egui events; native IME review remains | no | none | 3–5 |
 | Vietnamese | vi | 0 | ❌ | Latin with stacked diacritics, untested | no | none | 3–4 |
 
 Other shipped languages: **5** — Traditional Chinese (`zh-hant`), Ukrainian (`uk`), Serbian
@@ -72,6 +72,7 @@ Estonian spelling, grammar, dates and document templates are not added by the in
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-11 | minor | Korean IME: transient preedit, confirmation-key ownership, final syllable saved once, late commits rejected; Gothic A1 fallback with composed/decomposed Hangul tests |
 | 2026-10-10 | minor | Estonian interface catalog, locale selection, saved preference and font coverage checks |
 | 2026-10-10 | minor | Serbian (Cyrillic and Latin) interface merged (#250) |
 | 2026-10-10 | major | First version: twelve-language table, catalog coverage measured, Word's 30 UI languages and 120 proofing tools listed |

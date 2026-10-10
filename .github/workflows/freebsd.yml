@@ -35,6 +35,8 @@ jobs:
           repository: storytold/craft-fonts
           ref: 8dcdacd5153e64560d109541a47d806f26f048c0
           path: craft-fonts
+      - name: Prepare Korean fallback font
+        run: python3 scripts/prepare-korean-font.py craft-fonts
       - name: Build and test in a FreeBSD VM
         uses: vmactions/freebsd-vm@c46abacb49f09938ca4e1702d15d836285d694cc # v1
         with:

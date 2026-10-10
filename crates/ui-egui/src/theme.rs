@@ -251,7 +251,7 @@ pub fn font_definitions(prefer_hans: bool, system_cjk: bool) -> FontDefinitions 
     fonts.families.insert(FontFamily::Name("semibold".into()), vec!["InterSemiBold".into(), "Inter".into(), "SourceSans".into()]);
     let add_cjk = |fonts: &mut FontDefinitions, name: String, data: FontData| {
         fonts.font_data.insert(name.clone(), Arc::new(data));
-        for fam in [FontFamily::Proportional, FontFamily::Name("medium".into()), FontFamily::Name("semibold".into())] {
+        for fam in [FontFamily::Proportional, FontFamily::Monospace, FontFamily::Name("medium".into()), FontFamily::Name("semibold".into())] {
             if let Some(v) = fonts.families.get_mut(&fam) {
                 v.push(name.clone());
             }
@@ -275,6 +275,15 @@ pub fn font_definitions(prefer_hans: bool, system_cjk: bool) -> FontDefinitions 
     }
     #[cfg(target_arch = "wasm32")]
     let _ = system_cjk;
+    #[cfg(not(target_arch = "wasm32"))]
+    if system_cjk && wordcraft_fonts::korean_fonts().next().is_none() {
+        static KO: std::sync::OnceLock<Option<wordcraft_fonts::SystemUiFont>> = std::sync::OnceLock::new();
+        if let Some(f) = KO.get_or_init(wordcraft_fonts::system_korean_ui_font) {
+            let mut data = FontData::from_static(&f.bytes);
+            data.index = f.index;
+            add_cjk(&mut fonts, format!("system {}", f.family), data);
+        }
+    }
     // Symbols and emoji fall back to egui's defaults (kept in the families).
     fonts
 }
